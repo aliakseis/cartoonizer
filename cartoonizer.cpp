@@ -9,7 +9,7 @@
 int main(int argc, char **argv)
 {
     if (argc < 3) {
-        printf("You need to pass at least two parameters.\n");
+        printf("You need to pass input and output file names as program parameters.\n");
         return -1;
     }
     
@@ -17,16 +17,23 @@ int main(int argc, char **argv)
     const char *out_filename = argv[2];
     
 
-    bool sketchMode = false;
-    bool alienMode = false;
-    bool evilMode = false;
-    int debugType = 0;
+    try {
+        // TODO use command line
+        bool sketchMode = false;
+        bool alienMode = false;
+        bool evilMode = false;
+        int debugType = 0;
 
-    auto lam = [sketchMode, alienMode, evilMode, debugType](cv::Mat& img) {
-        cv::Mat displayedFrame = cv::Mat(img.size(), CV_8UC3);
-        cartoonifyImage(img, displayedFrame, sketchMode, alienMode, evilMode, debugType);
-        img = displayedFrame;
-    };
+        auto lam = [sketchMode, alienMode, evilMode, debugType](cv::Mat& img) {
+            cv::Mat displayedFrame = cv::Mat(img.size(), CV_8UC3);
+            cartoonifyImage(img, displayedFrame, sketchMode, alienMode, evilMode, debugType);
+            img = displayedFrame;
+        };
 
-    return TransformVideo(in_filename, out_filename, lam);
+        return TransformVideo(in_filename, out_filename, lam);
+    }
+    catch (const std::exception& ex) {
+        std::cerr << "Exception " << typeid(ex).name() << ": " << ex.what() << '\n';
+        return EXIT_FAILURE;
+    }
 }
