@@ -7,6 +7,7 @@ extern "C"
 #include <libavutil/timestamp.h>
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
+#include <libavcodec/avcodec.h>
 }
 
 #include <opencv2/opencv.hpp>
@@ -231,11 +232,11 @@ int TransformVideo(const char *in_filename, const char *out_filename, std::funct
             {
                 // transformation
 
-                AVPacket avEncodedPacket;
+                AVPacket avEncodedPacket{};
 
-                av_init_packet(&avEncodedPacket);
-                avEncodedPacket.data = NULL;
-                avEncodedPacket.size = 0;
+                //av_init_packet(&avEncodedPacket);
+                //avEncodedPacket.data = NULL;
+                //avEncodedPacket.size = 0;
 
 
                 cv::Mat img(videoFrame->height, videoFrame->width, CV_8UC3);// , pFrameRGB->data[0]); //dst->data[0]);
@@ -329,11 +330,11 @@ int TransformVideo(const char *in_filename, const char *out_filename, std::funct
     // flush encoder
     if (videoCodec->capabilities & AV_CODEC_CAP_DELAY)
     {
-        AVPacket avEncodedPacket;
+        AVPacket avEncodedPacket{};
 
-        av_init_packet(&avEncodedPacket);
-        avEncodedPacket.data = NULL;
-        avEncodedPacket.size = 0;
+        //av_init_packet(&avEncodedPacket);
+        //avEncodedPacket.data = NULL;
+        //avEncodedPacket.size = 0;
 
         while ((ret = avcodec_send_frame(enc_ctx, nullptr)) >= 0)
         {
