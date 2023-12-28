@@ -22,26 +22,65 @@
 void cartoonifyImage(Mat srcColor, Mat dst, bool sketchMode, bool alienMode, bool evilMode, int debugType)
 {
     // Convert from BGR color to Grayscale
-    Mat srcGray;
-    cvtColor(srcColor, srcGray, COLOR_BGR2GRAY);
+    //Mat srcGray;
+    //cvtColor(srcColor, srcGray, COLOR_BGR2GRAY);
 
+    /*
     // Remove the pixel noise with a good Median filter, before we start detecting edges.
-    medianBlur(srcGray, srcGray, 7);
-
+    medianBlur(srcGray, srcGray, 3);
+    */
     Size size = srcColor.size();
     Mat mask = Mat(size, CV_8U);
     Mat edges = Mat(size, CV_8U);
+    Mat totalFltEdges = Mat::zeros(size, CV_32F);
     if (!evilMode) {
+
+        std::vector<cv::Mat> bgr;
+        split(srcColor, bgr);
+
+        for (auto& src : bgr)
+        {
+            cv::Mat img;
+            src.convertTo(img, CV_32F);
+            img += 4.;
+            cv::log(img, img);
+
+            medianBlur(img, img, 3);
+
+            Mat fltEdges = Mat(size, CV_32F);
+            Laplacian(img, fltEdges, CV_32F, 3);
+
+            //totalFltEdges += fltEdges;
+            totalFltEdges =  cv::max(totalFltEdges, fltEdges);
+        }
+
+        mask = totalFltEdges < .27;
+
+        normalize(totalFltEdges, totalFltEdges, 0, 255, cv::NORM_MINMAX);
+        totalFltEdges.convertTo(edges, CV_8U);
+
+
+        /*
+
         // Generate a nice edge mask, similar to a pencil line drawing.
-        Laplacian(srcGray, edges, CV_8U, 5);
-        threshold(edges, mask, 80, 255, THRESH_BINARY_INV);
+        Laplacian(srcGray, edges, CV_8U, 3);
+        threshold(edges, mask, 30, 255, THRESH_BINARY_INV);
         // Tiny cameras usually have lots of noise, so remove small
         // dots of black noise from the black & white edge mask.
+
+        */
+
         removePepperNoise(mask);
     }
     else {
         // Evil mode, making everything look like a scary bad guy.
         // (Where "srcGray" is the original grayscale image plus a medianBlur of size 7x7).
+        // Convert from BGR color to Grayscale
+        Mat srcGray;
+        cvtColor(srcColor, srcGray, COLOR_BGR2GRAY);
+
+        // Remove the pixel noise with a good Median filter, before we start detecting edges.
+        medianBlur(srcGray, srcGray, 3);
         Mat edges2;
         Scharr(srcGray, edges, CV_8U, 1, 0);
         Scharr(srcGray, edges2, CV_8U, 1, 0, -1);
