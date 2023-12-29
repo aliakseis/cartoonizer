@@ -38,6 +38,8 @@ void cartoonifyImage(Mat srcColor, Mat dst, bool sketchMode, bool alienMode, boo
         std::vector<cv::Mat> bgr;
         split(srcColor, bgr);
 
+        /*
+
         for (auto& src : bgr)
         {
             cv::Mat img;
@@ -45,18 +47,87 @@ void cartoonifyImage(Mat srcColor, Mat dst, bool sketchMode, bool alienMode, boo
             img += 4.;
             cv::log(img, img);
 
-            medianBlur(img, img, 3);
+            cv::medianBlur(img, img, 3);
 
+            img.copyTo(src);
+        }
+
+        cv::Mat ohta[] = {
+            (bgr[0] + bgr[1] + bgr[2]) / 3,
+            (bgr[2] - bgr[0]) / 2,
+            ((bgr[1] * 2) - bgr[2] - bgr[0]) / 4
+        };
+
+        for (auto& img : ohta)
+        {
             Mat fltEdges = Mat(size, CV_32F);
             Laplacian(img, fltEdges, CV_32F, 3);
 
-            //totalFltEdges += fltEdges;
-            totalFltEdges =  cv::max(totalFltEdges, fltEdges);
+            totalFltEdges += fltEdges;
+            //totalFltEdges =  cv::max(totalFltEdges, fltEdges);
         }
 
-        mask = totalFltEdges < .27;
+        mask = totalFltEdges < .3;
 
-        normalize(totalFltEdges, totalFltEdges, 0, 255, cv::NORM_MINMAX);
+        */
+
+
+        for (int idx = 0; idx < 3; ++idx)
+        {
+            auto& channel1 = bgr[(idx + 1) % 3];
+            auto& channel2 = bgr[(idx + 2) % 3];
+
+            cv::Mat max = cv::max(channel1, channel2);
+
+            auto res = cv::Mat(size, CV_32F);
+
+            auto& channel = bgr[idx];
+
+            for (int i = 0; i < res.rows; i++)
+                for (int j = 0; j < res.cols; j++)
+                    res.at<float>(i, j) = std::atan2(channel.at<uchar>(i, j) + .5, max.at<uchar>(i, j) + .5);
+
+            //cv::Mat res;
+            //cv::phase(max, bgr[idx], res);
+
+            cv::medianBlur(res, res, 5);
+            //GaussianBlur(res, res, cv::Size(7, 7), 0, 0);
+
+            //normalize(res, res, 0, 1, cv::NORM_MINMAX);
+
+            Mat fltEdges = Mat(size, CV_32F);
+            Laplacian(res, fltEdges, CV_32F, 5);
+
+            totalFltEdges += fltEdges;
+            //totalFltEdges = cv::max(totalFltEdges, fltEdges);
+        }
+
+        mask = totalFltEdges < .5;
+
+        {
+            Mat srcGray;
+            cvtColor(srcColor, srcGray, COLOR_BGR2GRAY);
+
+            cv::Mat img;
+            srcGray.convertTo(img, CV_32F);
+            img += 4.;
+            cv::log(img, img);
+
+            medianBlur(img, img, 5);
+
+            Mat fltEdges = Mat(size, CV_32F);
+            Laplacian(img, fltEdges, CV_32F, 5);
+
+            //totalFltEdges += fltEdges;
+            //totalFltEdges = cv::max(totalFltEdges, fltEdges);
+
+            cv::Mat altMask = fltEdges < 1.;
+
+            mask &= altMask;
+        }
+
+
+        cv::normalize(totalFltEdges, totalFltEdges, 0, 255, cv::NORM_MINMAX);
         totalFltEdges.convertTo(edges, CV_8U);
 
 
@@ -251,6 +322,9 @@ void removePepperNoise(Mat &mask)
                 }
                 // Since we just covered the whole 5x5 block with white, we know the next 2 pixels
                 // won't be black, so skip the next 2 pixels on the right.
+
+                x += 2;
+
                 pThis += 2;
                 pUp1 += 2;
                 pUp2 += 2;
